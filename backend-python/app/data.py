@@ -1,11 +1,13 @@
 """Market data access.
 
-Primary source: Yahoo Finance via `yfinance` (free, no API key).
+Primary source: Yahoo Finance via `yfinance`, using a `curl_cffi` browser-
+impersonating session so requests from datacenter IPs (Railway, etc.) are not
+blocked by Yahoo's bot detection.
   - IDX tickers get a ".JK" suffix automatically (e.g. BBRI -> BBRI.JK)
   - US tickers are used as-is (e.g. AAPL)
   - EU tickers should be passed with their Yahoo suffix (e.g. ASML.AS, SAP.DE)
 
-If yfinance fails (offline, rate-limited, unknown ticker) we fall back to a
+If Yahoo fails (offline, rate-limited, unknown ticker) we fall back to a
 deterministic synthetic random walk so the rest of the system keeps working.
 A tiny in-memory TTL cache avoids hammering Yahoo on repeated calls.
 """
@@ -34,6 +36,16 @@ def _yahoo_symbol(ticker: str, market: str) -> str:
     return t
 
 
+def _browser_session():
+    """A curl_cffi session impersonating Chrome — key to avoiding Yahoo blocks
+    from cloud IPs. Returns None if curl_cffi isn't available."""
+    try:
+        from curl_cffi import requests as cffi
+        return cffi.Session(impersonate="chrome")
+    except Exception:
+        return None
+
+
 def _synthetic(ticker: str, market: str, days: int) -> Dict:
     seed = abs(hash((ticker.upper(), market))) % (2**32)
     rng = np.random.default_rng(seed)
@@ -60,22 +72,7 @@ def _synthetic(ticker: str, market: str, days: int) -> Dict:
     }
 
 
-def _from_yahoo(ticker: str, market: str, days: int) -> Optional[Dict]:
-    try:
-        import yfinance as yf  # imported lazily so tests run without it
-    except Exception:
-        return None
-    symbol = _yahoo_symbol(ticker, market)
-    # pull a bit more than `days` to satisfy long indicators (SMA100 etc.)
-    period = "1y" if days <= 252 else "2y"
-    try:
-        df = yf.download(symbol, period=period, interval="1d",
-                         auto_adjust=True, progress=False, threads=False)
-    except Exception:
-        return None
-    if df is None or len(df) == 0:
-        return None
-    # yfinance can return multi-index columns for single tickers in some versions
+def _df_to_dict(df, ticker: str, market: str, symbol: str) -> Optional[Dict]:
     def col(name):
         try:
             s = df[name]
@@ -99,6 +96,28 @@ def _from_yahoo(ticker: str, market: str, days: int) -> Optional[Dict]:
         "high": col("High") or close,
         "low": col("Low") or close,
     }
+
+
+def _from_yahoo(ticker: str, market: str, days: int) -> Optional[Dict]:
+    try:
+        import yfinance as yf  # imported lazily so tests run without it
+    except Exception:
+        return None
+    symbol = _yahoo_symbol(ticker, market)
+    period = "1y" if days <= 252 else "2y"
+    session = _browser_session()
+    for _ in range(2):  # one retry
+        try:
+            tk = yf.Ticker(symbol, session=session) if session else yf.Ticker(symbol)
+            df = tk.history(period=period, interval="1d", auto_adjust=True)
+            if df is not None and len(df) > 0:
+                out = _df_to_dict(df, ticker, market, symbol)
+                if out:
+                    return out
+        except Exception:
+            pass
+        time.sleep(0.5)
+    return None
 
 
 def get_history(ticker: str, market: str = "IDX", days: int = 180) -> Dict:
