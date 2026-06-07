@@ -1,0 +1,27 @@
+# Local dev: run both services together.
+# Secrets are NOT read from a committed file — inject them from Railway at
+# runtime (no key on disk):   railway run docker compose up --build
+# The ${VAR} refs below are filled from the shell env that Railway CLI provides.
+services:
+  backend:
+    build: ./backend-python
+    ports:
+      - "8000:8000"
+    environment:
+      - PORT=8000
+
+  bot:
+    build: ./bot-node
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+      - ANALYSIS_BACKEND_URL=http://backend:8000
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - CLAUDE_MODEL=${CLAUDE_MODEL:-claude-sonnet-4-20250514}
+      - DEFAULT_LANG=${DEFAULT_LANG:-id}
+      - SUBSCRIBER_CHAT_IDS=${SUBSCRIBER_CHAT_IDS:-}
+      - WATCHLIST=${WATCHLIST:-BBRI,TLKM,BBCA}
+    depends_on:
+      - backend

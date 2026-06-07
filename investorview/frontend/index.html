@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>InvestorView</title>
+  <meta name="theme-color" content="#0a0e17" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+  <script src="https://unpkg.com/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js"></script>
+</head>
+<body>
+  <header>
+    <h1 id="appTitle">InvestorView</h1>
+    <span class="tag" id="tagline"></span>
+    <span class="spacer"></span>
+    <button class="ghost" id="installBtn" style="display:none"></button>
+    <select id="langSel">
+      <option value="id">ID</option>
+      <option value="en">EN</option>
+    </select>
+  </header>
+
+  <nav id="nav">
+    <button data-page="dashboard" class="active"></button>
+    <button data-page="technical"></button>
+    <button data-page="projection"></button>
+    <button data-page="signals"></button>
+    <button data-page="settings"></button>
+  </nav>
+
+  <main>
+    <!-- Dashboard -->
+    <section class="page active" id="page-dashboard">
+      <div class="grid" id="statGrid"></div>
+      <div class="card">
+        <div class="row" style="justify-content:space-between">
+          <h2 id="portfolioTitle"></h2>
+          <button class="primary" id="addBtn"></button>
+        </div>
+        <div id="portfolioArea"></div>
+      </div>
+    </section>
+
+    <!-- Technical -->
+    <section class="page" id="page-technical">
+      <div class="card">
+        <div class="row">
+          <input id="techTicker" placeholder="BBRI" style="width:120px" />
+          <select id="techMarket"><option>IDX</option><option>US</option><option>EU</option></select>
+          <button class="primary" id="techBtn"></button>
+        </div>
+        <div class="pills" id="techPills"></div>
+        <p class="warn" id="techWarn"></p>
+        <div id="chart"></div>
+      </div>
+      <div class="card">
+        <h2 id="candleGuideTitle"></h2>
+        <p class="muted" id="candleGuide"></p>
+      </div>
+    </section>
+
+    <!-- Projection -->
+    <section class="page" id="page-projection">
+      <div class="card">
+        <div class="row">
+          <input id="projTicker" placeholder="BBRI" style="width:120px" />
+          <select id="projMarket"><option>IDX</option><option>US</option><option>EU</option></select>
+          <input id="projHorizon" type="number" value="30" style="width:80px" />
+          <button class="primary" id="projBtn"></button>
+        </div>
+        <p class="muted" id="projNote" style="margin-top:10px"></p>
+        <div id="projResult" style="margin-top:12px"></div>
+      </div>
+    </section>
+
+    <!-- Signals -->
+    <section class="page" id="page-signals">
+      <div class="card">
+        <h2 id="signalsTitle">Sinyal</h2>
+        <div id="signalsArea"></div>
+      </div>
+    </section>
+
+    <!-- Settings -->
+    <section class="page" id="page-settings">
+      <div class="card">
+        <label id="lblBackend"></label>
+        <div class="row">
+          <input id="backendInput" style="flex:1;min-width:200px" placeholder="https://your-backend.up.railway.app" />
+          <button class="primary" id="saveBackend"></button>
+        </div>
+        <label id="lblLang" style="display:block;margin-top:16px"></label>
+        <select id="langSel2"><option value="id">Indonesia</option><option value="en">English</option></select>
+        <div class="row" style="margin-top:16px">
+          <button class="ghost" id="notifBtn"></button>
+        </div>
+        <p class="muted" id="healthInfo" style="margin-top:12px"></p>
+      </div>
+    </section>
+  </main>
+
+  <!-- Add holding modal -->
+  <div class="modal-bg" id="modal">
+    <div class="modal">
+      <h2 id="modalTitle"></h2>
+      <label id="mLblTicker"></label><input id="mTicker" />
+      <label id="mLblMarket"></label>
+      <select id="mMarket"><option>IDX</option><option>US</option><option>EU</option></select>
+      <label id="mLblShares"></label><input id="mShares" type="number" />
+      <label id="mLblAvg"></label><input id="mAvg" type="number" />
+      <div class="row" style="margin-top:16px;justify-content:flex-end">
+        <button class="ghost" id="mCancel"></button>
+        <button class="primary" id="mSave"></button>
+      </div>
+    </div>
+  </div>
+
+  <script src="i18n.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
