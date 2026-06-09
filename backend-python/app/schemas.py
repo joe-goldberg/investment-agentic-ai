@@ -14,17 +14,26 @@ class Holding(BaseModel):
 class AnalyzeRequest(BaseModel):
     ticker: str
     market: str = "IDX"
-    days: int = 180
+
+
+class ChartRequest(BaseModel):
+    ticker: str
+    market: str = "IDX"
+    timeframe: str = "6M"  # 1D, 5D, 1M, 3M, 6M, 1Y, MAX
+
+
+class FundamentalRequest(BaseModel):
+    ticker: str
+    market: str = "IDX"
 
 
 class ProjectRequest(BaseModel):
     ticker: str
     market: str = "IDX"
-    days: int = 180
     horizon: int = 30
 
 
 class PortfolioRequest(BaseModel):
     holdings: List[Holding] = Field(default_factory=list)
     horizon: int = 30
-    lang: str = "id"  # id (default) | en
+    lang: str = "id"

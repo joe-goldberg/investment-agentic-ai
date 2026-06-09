@@ -2,7 +2,7 @@
 <html lang="id">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
   <title>InvestorView</title>
   <meta name="theme-color" content="#0a0e17" />
   <link rel="manifest" href="manifest.json" />
@@ -17,15 +17,13 @@
     <span class="tag" id="tagline"></span>
     <span class="spacer"></span>
     <button class="ghost" id="installBtn" style="display:none"></button>
-    <select id="langSel">
-      <option value="id">ID</option>
-      <option value="en">EN</option>
-    </select>
+    <select id="langSel"><option value="id">ID</option><option value="en">EN</option></select>
   </header>
 
   <nav id="nav">
     <button data-page="dashboard" class="active"></button>
     <button data-page="technical"></button>
+    <button data-page="fundamental"></button>
     <button data-page="projection"></button>
     <button data-page="signals"></button>
     <button data-page="settings"></button>
@@ -48,17 +46,30 @@
     <section class="page" id="page-technical">
       <div class="card">
         <div class="row">
-          <input id="techTicker" placeholder="BBRI" style="width:120px" />
+          <input id="techTicker" placeholder="BBRI" style="width:110px" />
           <select id="techMarket"><option>IDX</option><option>US</option><option>EU</option></select>
           <button class="primary" id="techBtn"></button>
         </div>
+        <div class="muted" id="tfLabel" style="margin-top:10px"></div>
+        <div class="pills" id="tfPills"></div>
         <div class="pills" id="techPills"></div>
         <p class="warn" id="techWarn"></p>
+        <div id="patternBox"></div>
         <div id="chart"></div>
       </div>
+    </section>
+
+    <!-- Fundamental -->
+    <section class="page" id="page-fundamental">
       <div class="card">
-        <h2 id="candleGuideTitle"></h2>
-        <p class="muted" id="candleGuide"></p>
+        <div class="row">
+          <input id="fundTicker" placeholder="BBRI" style="width:110px" />
+          <select id="fundMarket"><option>IDX</option><option>US</option><option>EU</option></select>
+          <button class="primary" id="fundBtn"></button>
+        </div>
+        <p class="muted" id="fundIntro" style="margin-top:10px"></p>
+        <p class="warn" id="fundWarn"></p>
+        <div id="fundResult"></div>
       </div>
     </section>
 
@@ -66,12 +77,14 @@
     <section class="page" id="page-projection">
       <div class="card">
         <div class="row">
-          <input id="projTicker" placeholder="BBRI" style="width:120px" />
+          <input id="projTicker" placeholder="BBRI" style="width:110px" />
           <select id="projMarket"><option>IDX</option><option>US</option><option>EU</option></select>
-          <input id="projHorizon" type="number" value="30" style="width:80px" />
+          <input id="projHorizon" type="number" value="30" style="width:70px" />
           <button class="primary" id="projBtn"></button>
         </div>
         <p class="muted" id="projNote" style="margin-top:10px"></p>
+        <h2 id="projChartTitle" style="margin-top:8px"></h2>
+        <div id="projChart"></div>
         <div id="projResult" style="margin-top:12px"></div>
       </div>
     </section>
@@ -80,6 +93,8 @@
     <section class="page" id="page-signals">
       <div class="card">
         <h2 id="signalsTitle">Sinyal</h2>
+        <p class="muted" id="signalsIntro"></p>
+        <p class="muted" id="rsiHelp"></p>
         <div id="signalsArea"></div>
       </div>
     </section>
@@ -89,7 +104,7 @@
       <div class="card">
         <label id="lblBackend"></label>
         <div class="row">
-          <input id="backendInput" style="flex:1;min-width:200px" placeholder="https://your-backend.up.railway.app" />
+          <input id="backendInput" style="flex:1;min-width:180px" placeholder="https://your-backend.up.railway.app" />
           <button class="primary" id="saveBackend"></button>
         </div>
         <label id="lblLang" style="display:block;margin-top:16px"></label>
@@ -109,11 +124,23 @@
       <label id="mLblTicker"></label><input id="mTicker" />
       <label id="mLblMarket"></label>
       <select id="mMarket"><option>IDX</option><option>US</option><option>EU</option></select>
-      <label id="mLblShares"></label><input id="mShares" type="number" />
+      <label id="mLblQty"></label><input id="mQty" type="number" />
+      <p class="muted" id="mQtyHint" style="font-size:11px;margin-top:4px"></p>
       <label id="mLblAvg"></label><input id="mAvg" type="number" />
       <div class="row" style="margin-top:16px;justify-content:flex-end">
         <button class="ghost" id="mCancel"></button>
         <button class="primary" id="mSave"></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Info modal (candle guide etc.) -->
+  <div class="modal-bg" id="infoModal">
+    <div class="modal">
+      <h2 id="infoTitle"></h2>
+      <div id="infoBody" class="muted" style="font-size:13px"></div>
+      <div class="row" style="margin-top:16px;justify-content:flex-end">
+        <button class="primary" id="infoClose"></button>
       </div>
     </div>
   </div>

@@ -3,7 +3,8 @@ uvicorn[standard]==0.30.6
 pydantic==2.9.2
 numpy==2.1.1
 pandas==2.2.3
-yfinance==0.2.43
+yfinance>=0.2.50
+curl_cffi>=0.7.1
 # Optional heavy model — uncomment to enable Prophet projections.
 # The API runs fine without it (Monte Carlo + Markov always available).
 # prophet==1.1.6

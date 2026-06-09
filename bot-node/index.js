@@ -15,7 +15,12 @@ const DEFAULT_LANG = process.env.DEFAULT_LANG || "id"; // Indonesian default
 // ---- Health server (Railway healthcheck) ----
 const app = express();
 app.get("/health", (_req, res) => res.json({ status: "ok", service: "investorview-bot" }));
-app.listen(PORT, () => console.log(`[http] health on :${PORT}`));
+// Bind the HTTP server FIRST, then start polling/scheduler in the callback so the
+// async poll loop can never starve the event loop before the port is bound.
+app.listen(PORT, () => {
+  console.log(`[http] health on :${PORT}`);
+  startBackgroundJobs();
+});
 
 // ---- Command handling ----
 async function handleCommand(chatId, text) {
@@ -50,7 +55,12 @@ async function handleCommand(chatId, text) {
 function send(chatId, text) { return sendMessage(chatId, text); }
 
 // ---- Poll loop ----
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 async function pollLoop() {
+  if (!process.env.TELEGRAM_BOT_TOKEN) {
+    console.warn("[bot] TELEGRAM_BOT_TOKEN not set; polling disabled");
+    return;
+  }
   while (true) {
     try {
       const updates = await getUpdates();
@@ -60,8 +70,10 @@ async function pollLoop() {
       }
     } catch (e) {
       console.error("[poll]", e.message);
-      await new Promise((r) => setTimeout(r, 3000));
+      await sleep(3000);
     }
+    // always yield a macrotask between iterations so the event loop breathes
+    await sleep(1000);
   }
 }
 
@@ -71,12 +83,14 @@ async function broadcast(builder) {
   for (const chatId of SUBSCRIBERS) await sendMessage(chatId, text);
 }
 
-startScheduler([
-  { market: "IDX", time: "08:00", run: () => broadcast(() => analysis.preMarket(WATCHLIST, "IDX", DEFAULT_LANG)) },
-  { market: "IDX", time: "16:00", run: () => broadcast(() => analysis.postMarket(WATCHLIST, "IDX", DEFAULT_LANG)) },
-  // Add EU/US jobs at their own open/close, e.g.:
-  // { market: "US", time: "09:30", run: () => broadcast(() => analysis.preMarket(["AAPL","MSFT"], "US", DEFAULT_LANG)) },
-]);
-
-pollLoop();
-console.log("[bot] started; default lang:", DEFAULT_LANG);
+// Started from the app.listen callback (after the port is bound).
+function startBackgroundJobs() {
+  startScheduler([
+    { market: "IDX", time: "08:00", run: () => broadcast(() => analysis.preMarket(WATCHLIST, "IDX", DEFAULT_LANG)) },
+    { market: "IDX", time: "16:00", run: () => broadcast(() => analysis.postMarket(WATCHLIST, "IDX", DEFAULT_LANG)) },
+    // Add EU/US jobs at their own open/close, e.g.:
+    // { market: "US", time: "09:30", run: () => broadcast(() => analysis.preMarket(["AAPL","MSFT"], "US", DEFAULT_LANG)) },
+  ]);
+  pollLoop();
+  console.log("[bot] started; default lang:", DEFAULT_LANG);
+}

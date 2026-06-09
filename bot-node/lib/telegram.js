@@ -18,7 +18,20 @@ export async function sendMessage(chatId, text, opts = {}) {
       ...opts,
     }),
   });
-  return res.json();
+  const data = await res.json();
+  if (!data.ok) {
+    console.error("[telegram] sendMessage failed:", data.error_code, data.description);
+    // Markdown can break on some characters — retry once as plain text.
+    if (data.description && /can't parse entities/i.test(data.description)) {
+      const retry = await fetch(API("sendMessage"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ chat_id: chatId, text, disable_web_page_preview: true }),
+      });
+      return retry.json();
+    }
+  }
+  return data;
 }
 
 // Long-poll for updates (simple; switch to webhooks for production scale).
@@ -27,7 +40,11 @@ export async function getUpdates() {
   if (!TOKEN) return [];
   const res = await fetch(API("getUpdates") + `?timeout=30&offset=${offset}`);
   const data = await res.json();
-  if (!data.ok) return [];
+  if (!data.ok) {
+    console.error("[telegram] getUpdates failed:", data.error_code, data.description);
+    return [];
+  }
   for (const u of data.result) offset = u.update_id + 1;
+  if (data.result.length) console.log("[telegram] received", data.result.length, "update(s)");
   return data.result;
 }

@@ -95,6 +95,65 @@ def macd(data: List[float], fast: int = 12, slow: int = 26, signal: int = 9) -> 
     return {"macd": macd_line, "signal": signal_line, "histogram": hist}
 
 
+def detect_pattern(open_, high, low, close) -> Dict[str, Optional[str]]:
+    """Detect the candlestick pattern formed by the most recent candle(s).
+
+    Returns {"pattern": <key>, "direction": bullish|bearish|neutral} where
+    <key> matches the descriptions in the frontend i18n (CANDLE_PATTERNS).
+    Checks triple -> double -> single patterns, returns the first match.
+    """
+    n = len(close)
+    if n < 3:
+        return {"pattern": None, "direction": "neutral"}
+
+    o, h, l, c = open_, high, low, close
+    def body(i): return abs(c[i] - o[i])
+    def rng(i): return max(h[i] - l[i], 1e-9)
+    def upper(i): return h[i] - max(o[i], c[i])
+    def lower(i): return min(o[i], c[i]) - l[i]
+    def bull(i): return c[i] > o[i]
+    def bear(i): return c[i] < o[i]
+    i = n - 1  # last candle
+
+    # ---- triple-candle ----
+    if bear(i-2) and body(i-1) < body(i-2) * 0.5 and bull(i) and c[i] > (o[i-2] + c[i-2]) / 2:
+        return {"pattern": "morning_star", "direction": "bullish"}
+    if bull(i-2) and body(i-1) < body(i-2) * 0.5 and bear(i) and c[i] < (o[i-2] + c[i-2]) / 2:
+        return {"pattern": "evening_star", "direction": "bearish"}
+    if bull(i) and bull(i-1) and bull(i-2) and c[i] > c[i-1] > c[i-2]:
+        return {"pattern": "three_white_soldiers", "direction": "bullish"}
+    if bear(i) and bear(i-1) and bear(i-2) and c[i] < c[i-1] < c[i-2]:
+        return {"pattern": "three_black_crows", "direction": "bearish"}
+
+    # ---- double-candle ----
+    if bear(i-1) and bull(i) and c[i] >= o[i-1] and o[i] <= c[i-1]:
+        return {"pattern": "bullish_engulfing", "direction": "bullish"}
+    if bull(i-1) and bear(i) and o[i] >= c[i-1] and c[i] <= o[i-1]:
+        return {"pattern": "bearish_engulfing", "direction": "bearish"}
+    if bear(i-1) and bull(i) and o[i] < l[i-1] and c[i] > (o[i-1] + c[i-1]) / 2 and c[i] < o[i-1]:
+        return {"pattern": "piercing", "direction": "bullish"}
+    if bull(i-1) and bear(i) and o[i] > h[i-1] and c[i] < (o[i-1] + c[i-1]) / 2 and c[i] > o[i-1]:
+        return {"pattern": "dark_cloud_cover", "direction": "bearish"}
+    if body(i) < body(i-1) * 0.6 and max(o[i], c[i]) < max(o[i-1], c[i-1]) and min(o[i], c[i]) > min(o[i-1], c[i-1]):
+        return {"pattern": "harami", "direction": "bullish" if bear(i-1) else "bearish"}
+
+    # ---- single-candle ----
+    b, r = body(i), rng(i)
+    if b <= r * 0.1:
+        return {"pattern": "doji", "direction": "neutral"}
+    if lower(i) >= b * 2 and upper(i) <= b * 0.5:
+        return {"pattern": "hammer" if bull(i) else "hanging_man",
+                "direction": "bullish" if bull(i) else "bearish"}
+    if upper(i) >= b * 2 and lower(i) <= b * 0.5:
+        return {"pattern": "inverted_hammer" if bull(i) else "shooting_star",
+                "direction": "bullish" if bull(i) else "bearish"}
+    if b >= r * 0.9:
+        return {"pattern": "marubozu", "direction": "bullish" if bull(i) else "bearish"}
+    if b <= r * 0.3 and upper(i) > b and lower(i) > b:
+        return {"pattern": "spinning_top", "direction": "neutral"}
+    return {"pattern": None, "direction": "bullish" if bull(i) else "bearish"}
+
+
 def latest_snapshot(data: List[float]) -> Dict[str, Optional[float]]:
     """Convenience: last value of each indicator for quick signals."""
     def last(xs):

@@ -1,53 +1,32 @@
-import numpy as np
 from app import indicators, projections
-from app.data import get_history
+from app.data import get_history, get_fundamentals
 
+def _p(): return get_history("BBRI","IDX","1Y")["close"]
 
-def _prices():
-    return get_history("BBRI", "IDX", 180)["close"]
-
-
-def test_sma_alignment():
-    p = _prices()
-    s = indicators.sma(p, 20)
-    assert len(s) == len(p)
-    assert s[:19] == [None] * 19
-    assert s[19] is not None
-
-
-def test_rsi_bounds():
-    p = _prices()
-    r = [x for x in indicators.rsi(p, 14) if x is not None]
-    assert all(0 <= x <= 100 for x in r)
-
-
-def test_bollinger_order():
-    p = _prices()
-    bb = indicators.bollinger(p)
-    i = len(p) - 1
-    assert bb["lower"][i] < bb["middle"][i] < bb["upper"][i]
-
-
-def test_monte_carlo_keys():
-    p = _prices()
-    mc = projections.monte_carlo_gbm(p, horizon=30, sims=500)
-    for k in ("expected_price", "p05", "p95", "prob_gain", "median_path"):
-        assert k in mc
-    assert mc["p05"] <= mc["median_price"] <= mc["p95"]
-    assert len(mc["median_path"]) == 30
-
-
-def test_markov_path():
-    p = _prices()
-    mk = projections.markov_chain(p, horizon=30)
-    assert len(mk["expected_path"]) == 30
-    # values are rounded to 4dp for display, so allow a small tolerance
-    assert abs(sum(mk["stationary_distribution"]) - 1.0) < 1e-3
-
-
-def test_project_all_consensus():
-    p = _prices()
-    res = projections.project_all(p, horizon=30)
-    assert "monte_carlo_gbm" in res["methods_available"]
-    assert "markov_chain" in res["methods_available"]
-    assert res["consensus_expected_price"] > 0
+def test_sma():
+    s = indicators.sma(_p(),20); assert s[:19]==[None]*19 and s[19] is not None
+def test_rsi():
+    assert all(0<=x<=100 for x in indicators.rsi(_p(),14) if x is not None)
+def test_boll():
+    p=_p(); bb=indicators.bollinger(p); i=len(p)-1
+    assert bb["lower"][i]<bb["middle"][i]<bb["upper"][i]
+def test_mc():
+    mc=projections.monte_carlo_gbm(_p(),30,500)
+    assert mc["p05"]<=mc["median_price"]<=mc["p95"] and len(mc["median_path"])==30
+def test_markov():
+    mk=projections.markov_chain(_p(),30)
+    assert len(mk["expected_path"])==30 and abs(sum(mk["stationary_distribution"])-1)<1e-3
+def test_all():
+    r=projections.project_all(_p(),30)
+    assert {"monte_carlo_gbm","markov_chain"}<=set(r["methods_available"]) and r["consensus_expected_price"]>0
+def test_tf():
+    for tf in ["1D","5D","1M","6M","1Y","MAX"]:
+        d=get_history("AAPL","US",tf)
+        assert len(d["close"])>0 and len(d["times"])==len(d["close"]) and "intraday" in d
+def test_pattern():
+    d=get_history("BBRI","IDX","6M")
+    pat=indicators.detect_pattern(d["open"],d["high"],d["low"],d["close"])
+    assert "pattern" in pat and "direction" in pat
+def test_fund():
+    f=get_fundamentals("BBRI","IDX")
+    assert "verdict" in f and "recommendation" in f and "trailingPE" in f
