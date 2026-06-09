@@ -1,20 +1,4 @@
-<<<<<<< HEAD
 """Market data access (Yahoo Finance via yfinance + curl_cffi, synthetic fallback)."""
-=======
-"""Market data access.
-
-Primary source: Yahoo Finance via `yfinance`, using a `curl_cffi` browser-
-impersonating session so requests from datacenter IPs (Railway, etc.) are not
-blocked by Yahoo's bot detection.
-  - IDX tickers get a ".JK" suffix automatically (e.g. BBRI -> BBRI.JK)
-  - US tickers are used as-is (e.g. AAPL)
-  - EU tickers should be passed with their Yahoo suffix (e.g. ASML.AS, SAP.DE)
-
-If Yahoo fails (offline, rate-limited, unknown ticker) we fall back to a
-deterministic synthetic random walk so the rest of the system keeps working.
-A tiny in-memory TTL cache avoids hammering Yahoo on repeated calls.
-"""
->>>>>>> 627dfbfe34f455ba37e299efaa253f3cd37a8e2a
 from __future__ import annotations
 
 from typing import Dict, Optional, Tuple
@@ -60,11 +44,6 @@ def _yahoo_symbol(ticker: str, market: str) -> str:
 
 
 def _browser_session():
-<<<<<<< HEAD
-=======
-    """A curl_cffi session impersonating Chrome — key to avoiding Yahoo blocks
-    from cloud IPs. Returns None if curl_cffi isn't available."""
->>>>>>> 627dfbfe34f455ba37e299efaa253f3cd37a8e2a
     try:
         from curl_cffi import requests as cffi
         return cffi.Session(impersonate="chrome")
@@ -72,14 +51,9 @@ def _browser_session():
         return None
 
 
-<<<<<<< HEAD
 def _synthetic(ticker, market, timeframe) -> Dict:
     period, interval, intraday, n = _tf(timeframe)
     seed = abs(hash((ticker.upper(), market, _norm_tf(timeframe)))) % (2**32)
-=======
-def _synthetic(ticker: str, market: str, days: int) -> Dict:
-    seed = abs(hash((ticker.upper(), market))) % (2**32)
->>>>>>> 627dfbfe34f455ba37e299efaa253f3cd37a8e2a
     rng = np.random.default_rng(seed)
     base = {"IDX": 4000, "EU": 80, "US": 150}[market]
     drift = rng.normal(0.0005, 0.0002)
@@ -108,11 +82,7 @@ def _synthetic(ticker: str, market: str, days: int) -> Dict:
     }
 
 
-<<<<<<< HEAD
 def _df_to_dict(df, ticker, market, symbol, timeframe, intraday) -> Optional[Dict]:
-=======
-def _df_to_dict(df, ticker: str, market: str, symbol: str) -> Optional[Dict]:
->>>>>>> 627dfbfe34f455ba37e299efaa253f3cd37a8e2a
     def col(name):
         try:
             s = df[name]
@@ -136,7 +106,6 @@ def _df_to_dict(df, ticker: str, market: str, symbol: str) -> Optional[Dict]:
     }
 
 
-<<<<<<< HEAD
 def _from_yahoo(ticker, market, timeframe) -> Optional[Dict]:
     try:
         import yfinance as yf
@@ -151,39 +120,15 @@ def _from_yahoo(ticker, market, timeframe) -> Optional[Dict]:
             df = tk.history(period=period, interval=interval, auto_adjust=True)
             if df is not None and len(df) > 0:
                 out = _df_to_dict(df, ticker, market, symbol, timeframe, intraday)
-=======
-def _from_yahoo(ticker: str, market: str, days: int) -> Optional[Dict]:
-    try:
-        import yfinance as yf  # imported lazily so tests run without it
-    except Exception:
-        return None
-    symbol = _yahoo_symbol(ticker, market)
-    period = "1y" if days <= 252 else "2y"
-    session = _browser_session()
-    for _ in range(2):  # one retry
-        try:
-            tk = yf.Ticker(symbol, session=session) if session else yf.Ticker(symbol)
-            df = tk.history(period=period, interval="1d", auto_adjust=True)
-            if df is not None and len(df) > 0:
-                out = _df_to_dict(df, ticker, market, symbol)
->>>>>>> 627dfbfe34f455ba37e299efaa253f3cd37a8e2a
                 if out:
                     return out
         except Exception:
             pass
-<<<<<<< HEAD
         time.sleep(0.4)
     return None
 
 
 def get_history(ticker: str, market: str = "IDX", timeframe: str = "6M") -> Dict:
-=======
-        time.sleep(0.5)
-    return None
-
-
-def get_history(ticker: str, market: str = "IDX", days: int = 180) -> Dict:
->>>>>>> 627dfbfe34f455ba37e299efaa253f3cd37a8e2a
     market = market.upper()
     if market not in MARKETS:
         raise ValueError("Unknown market: " + str(market))
