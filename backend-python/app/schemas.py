@@ -27,6 +27,16 @@ class FundamentalRequest(BaseModel):
     market: str = "IDX"
 
 
+class MarketRequest(BaseModel):
+    market: str = "IDX"
+
+
+class NewsRequest(BaseModel):
+    ticker: str
+    market: str = "IDX"
+    limit: int = 5
+
+
 class ProjectRequest(BaseModel):
     ticker: str
     market: str = "IDX"

@@ -154,6 +154,46 @@ def detect_pattern(open_, high, low, close) -> Dict[str, Optional[str]]:
     return {"pattern": None, "direction": "bullish" if bull(i) else "bearish"}
 
 
+def atr(high, low, close, period: int = 14):
+    if len(close) < period + 1:
+        return None
+    trs = []
+    for i in range(1, len(close)):
+        trs.append(max(high[i] - low[i], abs(high[i] - close[i - 1]), abs(low[i] - close[i - 1])))
+    return float(np.mean(trs[-period:]))
+
+
+def _idx_tick(p):
+    if p < 200: t = 1
+    elif p < 500: t = 2
+    elif p < 2000: t = 5
+    elif p < 5000: t = 10
+    else: t = 25
+    return int(round(p / t) * t)
+
+
+def recommend_levels(open_, high, low, close, market="IDX"):
+    last = float(close[-1])
+    a = atr(high, low, close, 14) or last * 0.02
+    rsi_list = rsi(close, 14)
+    rsi_v = next((x for x in reversed(rsi_list) if x is not None), None)
+    rnd = (lambda x: _idx_tick(x)) if market.upper() == "IDX" else (lambda x: round(float(x), 2))
+    if rsi_v is not None and rsi_v < 35:
+        action = "BUY"
+    elif rsi_v is not None and rsi_v > 65:
+        action = "SELL"
+    else:
+        action = "HOLD"
+    if action == "SELL":
+        entry, target, stop = last, last - 2 * a, last + 1.5 * a
+    else:
+        entry, target, stop = last, last + 2 * a, last - 1.5 * a
+    entry, target, stop = rnd(entry), rnd(target), rnd(stop)
+    rr = round(abs(target - entry) / max(abs(entry - stop), 1e-9), 2)
+    return {"action": action, "entry": entry, "target": target, "stop": stop,
+            "atr": rnd(a), "risk_reward": rr, "rsi": round(rsi_v, 1) if rsi_v is not None else None}
+
+
 def latest_snapshot(data: List[float]) -> Dict[str, Optional[float]]:
     """Convenience: last value of each indicator for quick signals."""
     def last(xs):

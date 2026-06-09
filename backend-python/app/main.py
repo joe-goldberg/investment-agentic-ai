@@ -16,9 +16,9 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from . import indicators, projections
-from .data import get_history, get_fundamentals, MARKETS
+from .data import get_history, get_fundamentals, get_index_summary, get_news, MARKETS
 from .schemas import (AnalyzeRequest, ChartRequest, FundamentalRequest,
-                      ProjectRequest, PortfolioRequest)
+                      MarketRequest, NewsRequest, ProjectRequest, PortfolioRequest)
 
 app = FastAPI(title="InvestorView Analysis API", version="2.1")
 
@@ -45,17 +45,11 @@ def analyze(req: AnalyzeRequest) -> Dict:
     hist = get_history(req.ticker, req.market, "1Y")
     close = hist["close"]
     snap = indicators.latest_snapshot(close)
-    rsi_v = snap.get("rsi14")
-    signal = "HOLD"
-    if rsi_v is not None:
-        if rsi_v < 35:
-            signal = "BUY"
-        elif rsi_v > 65:
-            signal = "SELL"
+    levels = indicators.recommend_levels(hist["open"], hist["high"], hist["low"], close, hist["market"])
     return {
         "ticker": hist["ticker"], "market": hist["market"], "currency": hist["currency"],
-        "last_price": close[-1], "indicators": snap, "signal": signal,
-        "synthetic": hist["synthetic"],
+        "last_price": close[-1], "indicators": snap, "signal": levels["action"],
+        "levels": levels, "synthetic": hist["synthetic"],
     }
 
 

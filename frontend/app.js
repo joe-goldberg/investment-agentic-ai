@@ -307,17 +307,18 @@
     el.innerHTML = `<p class="muted">${t("loading")}</p>`;
     let rows = "";
     for (const h of portfolio) {
-      let sig = "hold", rsi = null;
-      try { const a = await api("/analyze", { ticker: h.ticker, market: h.market }); sig = (a.signal || "hold").toLowerCase(); rsi = a.indicators?.rsi14; } catch (_) {}
-      const reason = sig === "buy" ? (lang === "id" ? "RSI rendah — jenuh jual" : "Low RSI — oversold")
-        : sig === "sell" ? (lang === "id" ? "RSI tinggi — jenuh beli" : "High RSI — overbought")
-        : (lang === "id" ? "RSI netral" : "RSI neutral");
+      let sig = "hold", rsi = null, L = {}, cur = "";
+      try { const a = await api("/analyze", { ticker: h.ticker, market: h.market }); sig = (a.signal || "hold").toLowerCase(); rsi = a.indicators?.rsi14; L = a.levels || {}; cur = a.currency; } catch (_) {}
       rows += `<tr><td>${h.ticker}<span class="muted"> ${h.market}</span></td>
         <td class="mono">${rsi != null ? rsi.toFixed(1) : "–"}</td>
-        <td><span class="badge ${sig}">${t(sig)}</span></td><td class="muted">${reason}</td></tr>`;
+        <td><span class="badge ${sig}">${t(sig)}</span></td>
+        <td class="mono">${fmt(L.entry, cur)}</td>
+        <td class="mono pos">${fmt(L.target, cur)}</td>
+        <td class="mono neg">${fmt(L.stop, cur)}</td></tr>`;
     }
     el.innerHTML = `<div class="table-wrap"><table><thead><tr><th>${t("ticker")}</th><th>RSI</th>
-      <th>${t("signal")}</th><th>${t("reason")}</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+      <th>${t("signal")}</th><th>${t("entry")}</th><th>${t("target")}</th><th>${t("stop")}</th>
+      </tr></thead><tbody>${rows}</tbody></table></div><p class="legend">${t("levels_help")}</p>`;
   }
 
   // ---------------- settings ----------------

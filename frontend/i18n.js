@@ -30,6 +30,8 @@ window.I18N = {
     lot_hint: "1 lot = 100 lembar (bursa IDX). Bursa lain memakai lembar.",
     verdict: "Penilaian", recommendation: "Rekomendasi", fund_intro: "Rasio keuangan utama emiten beserta artinya.",
     info_close: "Tutup",
+    entry: "Entry", target: "Target", stop: "Stop Loss", rr: "Risk/Reward",
+    levels_help: "Level dihitung dari ATR & RSI: Entry = harga kini, Target/Stop = ±ATR. Edukasi, bukan saran finansial.",
   },
   en: {
     app_title: "InvestorView", tagline: "AI-driven investment assistant",
@@ -61,6 +63,8 @@ window.I18N = {
     lot_hint: "1 lot = 100 shares (IDX). Other markets use shares.",
     verdict: "Verdict", recommendation: "Recommendation", fund_intro: "Key financial ratios and what they mean.",
     info_close: "Close",
+    entry: "Entry", target: "Target", stop: "Stop Loss", rr: "Risk/Reward",
+    levels_help: "Levels from ATR & RSI: Entry = current price, Target/Stop = ±ATR. Educational, not financial advice.",
   },
 };
 

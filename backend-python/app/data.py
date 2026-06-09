@@ -37,6 +37,8 @@ def _tf(timeframe):
 
 def _yahoo_symbol(ticker: str, market: str) -> str:
     t = ticker.upper().strip()
+    if t.startswith("^"):
+        return t
     suffix = MARKETS[market]["suffix"]
     if suffix and not t.endswith(suffix):
         return t + suffix
@@ -202,3 +204,48 @@ def get_fundamentals(ticker: str, market: str = "IDX") -> Dict:
     data["verdict"] = "BAIK" if score >= 3 else ("CUKUP" if score >= 1 else "HATI-HATI")
     data["recommendation"] = "BUY" if score >= 3 else ("HOLD" if score >= 1 else "SELL")
     return data
+
+
+
+INDEX_SYMBOLS = {"IDX": "^JKSE", "EU": "^STOXX50E", "US": "^GSPC"}
+INDEX_NAMES = {"IDX": "IHSG", "EU": "Euro Stoxx 50", "US": "S&P 500"}
+
+
+def get_index_summary(market: str = "IDX") -> Dict:
+    market = market.upper()
+    sym = INDEX_SYMBOLS.get(market, "^GSPC")
+    hist = get_history(sym, market, "1M")
+    close = hist["close"]
+    last = close[-1]
+    prev = close[-2] if len(close) > 1 else last
+    chg = (last / prev - 1) * 100 if prev else 0.0
+    return {"market": market, "name": INDEX_NAMES.get(market, sym), "symbol": sym,
+            "last": round(float(last), 2), "change_pct": round(float(chg), 2),
+            "synthetic": hist["synthetic"]}
+
+
+def get_news(ticker: str, market: str = "IDX", limit: int = 5) -> Dict:
+    market = market.upper()
+    symbol = _yahoo_symbol(ticker, market)
+    items = []
+    try:
+        import yfinance as yf
+        session = _browser_session()
+        tk = yf.Ticker(symbol, session=session) if session else yf.Ticker(symbol)
+        raw = getattr(tk, "news", None) or []
+        for it in raw[:limit]:
+            c = it.get("content") if isinstance(it.get("content"), dict) else it
+            title = (c.get("title") if isinstance(c, dict) else None) or it.get("title")
+            pub = it.get("publisher")
+            if isinstance(c, dict) and isinstance(c.get("provider"), dict):
+                pub = c["provider"].get("displayName") or pub
+            link = it.get("link")
+            if isinstance(c, dict):
+                cu = c.get("clickThroughUrl") or c.get("canonicalUrl")
+                if isinstance(cu, dict):
+                    link = cu.get("url") or link
+            if title:
+                items.append({"title": title, "publisher": pub, "link": link})
+    except Exception:
+        items = []
+    return {"ticker": ticker.upper(), "market": market, "items": items}
